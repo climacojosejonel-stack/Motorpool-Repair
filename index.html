@@ -1,4 +1,4 @@
-<index.html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -107,6 +107,12 @@ legend{font-size:12px;font-weight:700;color:var(--maroon);padding:0 6px}
 .plist .ok{color:var(--ok);font-weight:700}
 @media(max-width:1000px){.prow{grid-template-columns:repeat(4,minmax(0,1fr))}.prow .pn{grid-column:span 2}}
 @media(max-width:560px){.prow{grid-template-columns:1fr 1fr}}
+.secboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.secbox{border:1px solid var(--line);border-left:4px solid var(--maroon);border-radius:8px;padding:10px 12px;background:#fcfbf8;text-align:left;color:var(--ink)}
+.secbox.on{background:var(--gold-l);border-left-color:var(--gold)}
+.secbox .t{font-weight:700;font-size:13px}
+.secbox .big{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin:2px 0}
+.secbox .sub{font-size:11px;color:var(--muted)}
 .load{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 18px}
 .load div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:5px 0;font-size:13px}
 .load .who small{display:block;color:var(--muted);font-size:11px}
@@ -163,6 +169,12 @@ legend{font-size:12px;font-weight:700;color:var(--maroon);padding:0 6px}
   </section>
 
   <section class="card" style="margin-bottom:18px">
+    <h2>Open jobs per section</h2>
+    <p class="note">A job handled by more than one section is counted in each. Click a section to show its jobs.</p>
+    <div class="secboard" id="secBoard"></div>
+  </section>
+
+  <section class="card" style="margin-bottom:18px">
     <h2>Open jobs per technician</h2>
     <p class="note" id="loadNote">Counts open jobs where the person is listed under Manpower.</p>
     <div class="load" id="load"></div>
@@ -209,7 +221,7 @@ legend{font-size:12px;font-weight:700;color:var(--maroon);padding:0 6px}
         <label>Priority<select id="priority"><option>Normal</option><option>High</option><option>Low</option></select></label>
         <label>Location<select id="location"><option>Inside Motorpool</option><option>Front Parking</option><option>Project Site</option></select></label>
         <label>Site<input id="site" list="siteList" placeholder="Pulilan Motorpool"></label>
-        <label>Section<input id="section" list="secList"></label>
+        <div class="s2" style="display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:4px"><span>Section(s)</span><div class="mp"><div class="chips" id="secChips"></div><select id="secPick" aria-label="Add section"></select></div><input type="hidden" id="section"></div>
         <label>Status<select id="status"></select></label>
         <label class="s4">Job request<textarea id="job_request" rows="2"></textarea></label>
         <label>Job order no.<input id="job_order"></label>
@@ -330,6 +342,7 @@ const PERSONNEL = [
 ];
 const PERSON_GROUPS = [...new Set(PERSONNEL.map((x) => x.g))];
 const TECH_GROUPS = ["Underchassis","Overhauling","Auto-Electrical","Machine Shop & Fabrication","Painting","Aircon","Tireman","Logistics","Plant Maintenance"];
+const splitSecs = (s) => String(s || "").split(/,| \/ /).map((x) => x.trim()).filter(Boolean);
 const splitNames = (s) => String(s || "").split(",").map((x) => x.trim()).filter(Boolean);
 const FIELDS = ["ref","status","priority","location","site","business_unit","unit","section","job_request","job_order","manpower","date_entry","time_in","date_started","date_finished","time_finished","date_released","time_released","remarks"];
 
@@ -403,7 +416,7 @@ function loadScript(src) { return new Promise((res, rej) => { const s = document
 function setConn(live) { const c = $("#conn"); c.className = "conn " + (live ? "live" : "off"); $("#connTxt").textContent = live ? "Live · Firebase" : "Offline · this browser"; }
 
 /* ---------- rendering ---------- */
-function render() { renderFlow(); renderSummary(); renderStats(); renderLoad(); renderFilters(); renderJobs(); $("#btnSeed").hidden = !unlocked || SEED.every((s) => data.some((d) => d.ref === s.ref)); }
+function render() { renderFlow(); renderSummary(); renderStats(); renderSecBoard(); renderLoad(); renderFilters(); renderJobs(); $("#btnSeed").hidden = !unlocked || SEED.every((s) => data.some((d) => d.ref === s.ref)); }
 
 function renderFlow() {
   $("#flow").innerHTML = STATUSES.map((s) => {
@@ -438,6 +451,24 @@ function renderStats() {
   ].map((s) => `<div class="stat${s.bad ? " bad" : ""}"><div class="v">${s.v}</div><div class="k">${esc(s.k)}</div></div>`).join("");
 }
 
+function renderSecBoard() {
+  const open = data.filter((d) => !CLOSED.has(d.status));
+  const secs = [...new Set([...SECTIONS, ...open.flatMap((d) => splitSecs(d.section))])];
+  const cur = $("#fSec").value;
+  const noSec = open.filter((d) => !splitSecs(d.section).length).length;
+  $("#secBoard").innerHTML = secs.map((x) => {
+    const list = open.filter((d) => splitSecs(d.section).includes(x));
+    const c = (k) => list.filter((d) => d.status === k).length;
+    return `<button class="secbox${cur === x ? " on" : ""}" data-sec="${esc(x)}"><div class="t">${esc(x)}</div><div class="big">${list.length}</div><div class="sub">${c("Ongoing")} ongoing · ${c("Waiting for Parts")} parts · ${c("Waiting for Manpower")} manpower · ${c("Pending")} pending</div></button>`;
+  }).join("") + (noSec ? `<div class="secbox" style="border-left-color:#bbb"><div class="t">No section yet</div><div class="big">${noSec}</div><div class="sub">Open jobs to assign</div></div>` : "");
+}
+$("#secBoard").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-sec]"); if (!b) return;
+  const sel = $("#fSec"); sel.value = sel.value === b.dataset.sec ? "" : b.dataset.sec;
+  renderSecBoard(); renderJobs(); document.querySelector(".tbl-wrap").scrollIntoView({behavior: "smooth", block: "start"});
+});
+$("#fSec").addEventListener("change", renderSecBoard);
+
 function renderLoad() {
   const open = data.filter((d) => !CLOSED.has(d.status));
   const count = new Map();
@@ -451,15 +482,33 @@ function renderLoad() {
   $("#load").innerHTML = rows.map((r) => `<div><span class="who">${esc(r.n)}<small>${esc(r.p)}</small></span><b>${r.c}</b></div>`).join("");
 }
 
+/* section picker: a job can involve several sections */
+let secSel = [];
+function drawSec() {
+  $("#section").value = secSel.join(", ");
+  $("#secChips").innerHTML = secSel.length ? secSel.map((n, i) => `<span class="chip${unlocked ? "" : " ro"}">${i === 0 && secSel.length > 1 ? "<small>1st</small> " : ""}${esc(n)}${unlocked ? `<button type="button" data-i="${i}" aria-label="Remove ${esc(n)}">×</button>` : ""}</span>`).join("") : '<span class="blank" style="font-size:12px">No section yet</span>';
+  const opts = [...new Set([...SECTIONS, ...data.flatMap((d) => splitSecs(d.section))])].filter((x) => !secSel.includes(x));
+  $("#secPick").innerHTML = `<option value="">${unlocked ? "Add a section…" : "Unlock editing to assign"}</option>` + opts.map((x) => `<option>${esc(x)}</option>`).join("") + `<option value="__other">Other section…</option>`;
+  $("#secPick").disabled = !unlocked;
+  if (typeof drawMp === "function" && $("#mpPick").options.length) drawMp();
+}
+$("#secChips").addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (!b) return; secSel.splice(Number(b.dataset.i), 1); drawSec(); });
+$("#secPick").addEventListener("change", (e) => {
+  let v = e.target.value; if (!v) return;
+  if (v === "__other") v = (prompt("Section name") || "").trim();
+  if (v && !secSel.includes(v)) secSel.push(v);
+  drawSec();
+});
+
 /* manpower picker */
 let mpSel = [];
 function drawMp() {
   $("#manpower").value = mpSel.join(", ");
   $("#mpChips").innerHTML = mpSel.length ? mpSel.map((n, i) => { const p = PERSONNEL.find((x) => x.n === n); return `<span class="chip${unlocked ? "" : " ro"}">${esc(n)}${p ? ` <small>${esc(p.p)}</small>` : ""}${unlocked ? `<button type="button" data-i="${i}" aria-label="Remove ${esc(n)}">×</button>` : ""}</span>`; }).join("") : '<span class="blank" style="font-size:12px">No one assigned yet</span>';
-  const sec = $("#section").value;
-  const order = [...PERSON_GROUPS].sort((a, b) => (b === sec) - (a === sec));
+  const secs = splitSecs($("#section").value);
+  const order = [...PERSON_GROUPS].sort((a, b) => secs.includes(b) - secs.includes(a));
   $("#mpPick").innerHTML = `<option value="">${unlocked ? "Add a person…" : "Unlock editing to assign"}</option>` +
-    order.map((g) => `<optgroup label="${esc(g)}${g === sec ? " (this section)" : ""}">${PERSONNEL.filter((p) => p.g === g && !mpSel.includes(p.n)).map((p) => `<option value="${esc(p.n)}">${esc(p.n)} · ${esc(p.p)}</option>`).join("")}</optgroup>`).join("") +
+    order.map((g) => `<optgroup label="${esc(g)}${secs.includes(g) ? " (this job)" : ""}">${PERSONNEL.filter((p) => p.g === g && !mpSel.includes(p.n)).map((p) => `<option value="${esc(p.n)}">${esc(p.n)} · ${esc(p.p)}</option>`).join("")}</optgroup>`).join("") +
     `<option value="__other">Someone not on the list…</option>`;
 }
 $("#mpChips").addEventListener("click", (e) => { const b = e.target.closest("button[data-i]"); if (!b) return; mpSel.splice(Number(b.dataset.i), 1); drawMp(); });
@@ -469,14 +518,13 @@ $("#mpPick").addEventListener("change", (e) => {
   if (v && !mpSel.includes(v)) mpSel.push(v);
   drawMp();
 });
-$("#section").addEventListener("change", drawMp);
 
 function fillSel(sel, label, vals) { const cur = sel.value; sel.innerHTML = `<option value="">${label}</option>` + vals.map((v) => `<option>${esc(v)}</option>`).join(""); sel.value = vals.includes(cur) ? cur : ""; }
 function renderFilters() {
   const uniq = (f) => [...new Set(data.map((d) => d[f]).filter(Boolean))].sort();
   fillSel($("#fBu"), "All business units", [...uniq("business_unit"), "(Unassigned)"]);
   fillSel($("#fLoc"), "All locations", LOCATIONS);
-  fillSel($("#fSec"), "All sections", [...new Set([...SECTIONS, ...uniq("section")])]);
+  fillSel($("#fSec"), "All sections", [...new Set([...SECTIONS, ...data.flatMap((d) => splitSecs(d.section))])]);
   const used = [...new Set(data.flatMap((d) => splitNames(d.manpower)))];
   fillSel($("#fMp"), "All manpower", [...new Set([...PERSONNEL.filter((p) => TECH_GROUPS.includes(p.g)).map((p) => p.n), ...used])].sort());
   $("#buList").innerHTML = [...new Set(["BBC","BBB","RMC","SCM","AP", ...uniq("business_unit")])].map((v) => `<option value="${esc(v)}">`).join("");
@@ -510,7 +558,7 @@ function filtered() {
     else if (!showDone && d.status === "Released") return false;
     if (bu === "(Unassigned)" ? d.business_unit : (bu && d.business_unit !== bu)) return false;
     if (loc && d.location !== loc) return false;
-    if (sec && d.section !== sec) return false;
+    if (sec && !splitSecs(d.section).includes(sec)) return false;
     if (mp && !splitNames(d.manpower).includes(mp)) return false;
     if (q && !FIELDS.some((f) => String(d[f] ?? "").toLowerCase().includes(q))) return false;
     return true;
@@ -529,6 +577,7 @@ function cell(d, c) {
     case "status": return `<td><span class="pill" style="--c:${statusColor(d.status)}">${esc(d.status)}</span>${d.priority === "High" ? '<div class="pri-High" style="font-size:11px;margin-top:3px">High priority</div>' : ""}</td>`;
     case "unit": return `<td class="unit">${b(d.unit)}</td>`;
     case "location": return `<td>${b(d.location)}${d.site && d.site !== "Pulilan Motorpool" ? `<div style="font-size:11px;color:var(--muted)">${esc(d.site)}</div>` : ""}</td>`;
+    case "section": return `<td style="min-width:130px">${splitSecs(d.section).map(esc).join("<br>") || '<span class="blank">—</span>'}</td>`;
     case "manpower": return `<td style="min-width:150px">${splitNames(d.manpower).map(esc).join("<br>") || '<span class="blank">—</span>'}</td>`;
     case "job_request": case "remarks": return `<td class="wide">${b(d[c.k])}</td>`;
     case "date_started": return `<td class="date">${d.date_started ? fmtDate(d.date_started) : '<span class="blank">—</span>'}</td>`;
@@ -567,6 +616,7 @@ function openJob(ref) {
   $("#histBox").hidden = !h.length;
   $("#hist").innerHTML = h.slice().reverse().map((e) => `<li>${esc(e.status)} · ${esc(new Date(e.at).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}))}</li>`).join("");
   $("#dlg").querySelectorAll("input,select,textarea").forEach((el) => el.disabled = !unlocked);
+  secSel = splitSecs(job.section); drawSec();
   mpSel = splitNames(job.manpower); drawMp();
   $("#btnSave").hidden = !unlocked; $("#btnDel").hidden = !unlocked || !d; $("#lockedHint").hidden = unlocked;
   $("#dlg").showModal();
@@ -616,7 +666,7 @@ $("#btnPrint").addEventListener("click", () => {
   const open = data.filter((d) => !CLOSED.has(d.status));
   const relToday = data.filter((d) => d.date_released === todayStr());
   const tbl = (list) => `<table><thead><tr><th>#</th><th>Unit</th><th>BU</th><th>Job request</th><th>Section</th><th>Manpower</th><th>Date in</th><th class="n">Days</th><th>Status</th><th>Remarks</th></tr></thead><tbody>` +
-    list.map((d, i) => `<tr><td>${i+1}</td><td><b>${esc(d.unit)}</b>${d.location === "Project Site" && d.site ? "<br>" + esc(d.site) : ""}</td><td>${esc(d.business_unit || "—")}</td><td>${esc(d.job_request || "")}</td><td>${esc(d.section || "—")}</td><td>${splitNames(d.manpower).map(esc).join("<br>") || "—"}</td><td>${d.date_entry ? fmtDate(d.date_entry) : "—"}${d.time_in ? " " + fmtTime(d.time_in) : ""}</td><td class="n">${daysOpen(d) ?? "—"}</td><td>${esc(d.status)}</td><td>${esc(d.remarks || "")}</td></tr>`).join("") + "</tbody></table>";
+    list.map((d, i) => `<tr><td>${i+1}</td><td><b>${esc(d.unit)}</b>${d.location === "Project Site" && d.site ? "<br>" + esc(d.site) : ""}</td><td>${esc(d.business_unit || "—")}</td><td>${esc(d.job_request || "")}</td><td>${splitSecs(d.section).map(esc).join("<br>") || "—"}</td><td>${splitNames(d.manpower).map(esc).join("<br>") || "—"}</td><td>${d.date_entry ? fmtDate(d.date_entry) : "—"}${d.time_in ? " " + fmtTime(d.time_in) : ""}</td><td class="n">${daysOpen(d) ?? "—"}</td><td>${esc(d.status)}</td><td>${esc(d.remarks || "")}</td></tr>`).join("") + "</tbody></table>";
   const byLoc = LOCATIONS.map((l) => { const list = open.filter((d) => d.location === l).sort((a, b) => STATUSES.findIndex((s) => s.k === a.status) - STATUSES.findIndex((s) => s.k === b.status)); return list.length ? `<h3>${esc(l)} (${list.length})</h3>${tbl(list)}` : ""; }).join("");
   const now = new Date();
   $("#printArea").innerHTML = `<h1>EMR Motorpool Job Status Report</h1>
