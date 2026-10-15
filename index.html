@@ -1,4 +1,4 @@
-<index.html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -97,6 +97,16 @@ legend{font-size:12px;font-weight:700;color:var(--maroon);padding:0 6px}
 .chip small{color:var(--muted)}
 .chip button{border:0;background:transparent;padding:0 6px;font-size:14px;line-height:1;color:var(--maroon)}
 .chip.ro{padding-right:10px}
+.prow{display:grid;grid-template-columns:2fr 1.2fr .6fr .9fr 1.4fr 1fr 1.1fr 1.1fr auto;gap:6px;align-items:end;padding:8px 0;border-bottom:1px dashed var(--line)}
+.prow label{display:flex;flex-direction:column;font-size:11px;color:var(--muted);gap:3px;min-width:0}
+.prow input{font:inherit;font-size:13px;padding:6px 7px;border:1px solid var(--line);border-radius:6px;width:100%;min-width:0}
+.prow .rm{border:1px solid var(--line);background:#fff;color:var(--bad);padding:6px 10px}
+.plist{margin:0;padding:0;list-style:none}
+.plist li{margin-bottom:4px}
+.plist small{display:block;color:var(--muted);font-size:11px}
+.plist .ok{color:var(--ok);font-weight:700}
+@media(max-width:1000px){.prow{grid-template-columns:repeat(4,minmax(0,1fr))}.prow .pn{grid-column:span 2}}
+@media(max-width:560px){.prow{grid-template-columns:1fr 1fr}}
 .load{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 18px}
 .load div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:5px 0;font-size:13px}
 .load .who small{display:block;color:var(--muted);font-size:11px}
@@ -214,14 +224,10 @@ legend{font-size:12px;font-weight:700;color:var(--maroon);padding:0 6px}
       </div>
     </fieldset>
     <fieldset><legend>Parts</legend>
-      <div class="grid">
-        <label class="s2">Parts needed<input id="parts_needed" placeholder="Part name, part no."></label>
-        <label>Qty<input type="number" min="0" step="1" id="part_qty"></label>
-        <label>Unit price (₱)<input type="number" min="0" step="0.01" id="part_price_php"></label>
-        <label class="s2">Supplier<input id="supplier"></label>
-        <label>PR / PO no.<input id="pr_no"></label>
-        <label>Date part requested<input type="date" id="date_part_requested"></label>
-        <label>Date part arrived<input type="date" id="date_part_arrived"></label>
+      <div id="partsList"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
+        <button type="button" class="btn-ghost" id="btnAddPart">+ Add part</button>
+        <span id="partsTotal" style="font-size:13px;color:var(--muted)"></span>
       </div>
     </fieldset>
     <fieldset><legend>Completion</legend>
@@ -253,13 +259,13 @@ legend{font-size:12px;font-weight:700;color:var(--maroon);padding:0 6px}
    Leave apiKey empty to run in Offline mode (saves to this browser only).
    ===================================================================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyB_9CwYHMCUpPlSMT3ES6WlPcFr1EE8UaY",
-  authDomain: "pemr---external-repairs.firebaseapp.com",
-  projectId: "pemr---external-repairs",
-  storageBucket: "pemr---external-repairs.firebasestorage.app",
-  messagingSenderId: "441751082916",
-  appId: "1:441751082916:web:719eae108b3df0d1bd5331",
-  measurementId: "G-9YFQ5XDH3X"
+  apiKey: "AIzaSyCNSzmrJhXbPP5kAKtN-VpkTMhPfU0S8OU",
+  authDomain: "motorpool-repair-c0b16.firebaseapp.com",
+  projectId: "motorpool-repair-c0b16",
+  storageBucket: "motorpool-repair-c0b16.firebasestorage.app",
+  messagingSenderId: "1094855423280",
+  appId: "1:1094855423280:web:295919f26b0fb1117c84f5",
+  measurementId: "G-BM4CHE3JCV"
 };
 const COLLECTION = "motorpoolJobs";   // Firestore collection name
 const EDIT_PIN   = "EMR6767";         // PIN to unlock editing
@@ -453,6 +459,57 @@ function renderLoad() {
   $("#load").innerHTML = rows.map((r) => `<div><span class="who">${esc(r.n)}<small>${esc(r.p)}</small></span><b>${r.c}</b></div>`).join("");
 }
 
+/* parts editor: any number of parts per job */
+let partsSel = [];
+const PART_KEYS = ["name","part_no","qty","unit_price","supplier","pr_no","date_requested","date_arrived"];
+function legacyParts(job) {
+  if (Array.isArray(job.parts)) return job.parts.map((p) => ({...p}));
+  if (!job.parts_needed) return [];
+  return [{name: job.parts_needed, part_no: "", qty: job.part_qty ?? null, unit_price: job.part_price_php ?? null, supplier: job.supplier || "", pr_no: job.pr_no || "", date_requested: job.date_part_requested || "", date_arrived: job.date_part_arrived || ""}];
+}
+function readParts() {
+  document.querySelectorAll("#partsList .prow").forEach((row, i) => {
+    PART_KEYS.forEach((k) => { const el = row.querySelector(`[data-k="${k}"]`); let v = el.value.trim(); if (el.type === "number") v = v === "" ? null : Number(v); partsSel[i][k] = v; });
+  });
+}
+function partsTotal(list) { return list.reduce((a, p) => a + (Number(p.qty) || 0) * (Number(p.unit_price) || 0), 0); }
+function drawParts() {
+  const v = (x) => esc(x ?? "");
+  $("#partsList").innerHTML = partsSel.length ? partsSel.map((p, i) => `<div class="prow">
+    <label class="pn">Part name<input data-k="name" value="${v(p.name)}" placeholder="e.g. Alternator belt"></label>
+    <label>Part no.<input data-k="part_no" value="${v(p.part_no)}"></label>
+    <label>Qty<input data-k="qty" type="number" min="0" step="1" value="${v(p.qty)}"></label>
+    <label>Unit price (₱)<input data-k="unit_price" type="number" min="0" step="0.01" value="${v(p.unit_price)}"></label>
+    <label>Supplier<input data-k="supplier" value="${v(p.supplier)}"></label>
+    <label>PR / PO no.<input data-k="pr_no" value="${v(p.pr_no)}"></label>
+    <label>Requested<input data-k="date_requested" type="date" value="${v(p.date_requested)}"></label>
+    <label>Arrived<input data-k="date_arrived" type="date" value="${v(p.date_arrived)}"></label>
+    <button type="button" class="rm" data-i="${i}" aria-label="Remove part">×</button></div>`).join("")
+    : '<p class="blank" style="font-size:12px;margin:4px 0">No parts listed. Click “+ Add part” if this job needs parts.</p>';
+  $("#partsList").querySelectorAll("input,button").forEach((el) => { el.disabled = !unlocked; });
+  $("#btnAddPart").hidden = !unlocked;
+  updatePartsTotal();
+}
+function updatePartsTotal() {
+  const t = partsTotal(partsSel);
+  $("#partsTotal").textContent = partsSel.length ? `${partsSel.length} part${partsSel.length > 1 ? "s" : ""}${t ? " · Total " + peso(t) : ""}` : "";
+}
+$("#btnAddPart").addEventListener("click", () => { readParts(); partsSel.push({name:"",part_no:"",qty:1,unit_price:null,supplier:"",pr_no:"",date_requested:todayStr(),date_arrived:""}); drawParts(); const rows = document.querySelectorAll("#partsList .prow"); rows[rows.length-1].querySelector('[data-k="name"]').focus(); });
+$("#partsList").addEventListener("click", (e) => { const b = e.target.closest("button.rm"); if (!b) return; readParts(); partsSel.splice(Number(b.dataset.i), 1); drawParts(); });
+$("#partsList").addEventListener("input", () => { readParts(); updatePartsTotal(); });
+function applyParts(job, list) {
+  const parts = list.filter((p) => String(p.name || "").trim());
+  job.parts = parts;
+  const uniq = (k) => [...new Set(parts.map((p) => p[k]).filter(Boolean))].join(", ") || null;
+  job.parts_needed = parts.length ? parts.map((p) => p.name + (p.part_no ? ` (P/N ${p.part_no})` : "") + (p.qty ? ` ×${p.qty}` : "")).join("; ") : null;
+  job.supplier = uniq("supplier"); job.pr_no = uniq("pr_no");
+  const req = parts.map((p) => p.date_requested).filter(Boolean).sort();
+  job.date_part_requested = req[0] || null;
+  job.date_part_arrived = parts.length && parts.every((p) => p.date_arrived) ? parts.map((p) => p.date_arrived).sort().slice(-1)[0] : null;
+  job.parts_total = partsTotal(parts) || null;
+  job.part_qty = null; job.part_price_php = null;
+}
+
 /* manpower picker */
 let mpSel = [];
 function drawMp() {
@@ -535,7 +592,11 @@ function cell(d, c) {
     case "location": return `<td>${b(d.location)}${d.site && d.site !== "Pulilan Motorpool" ? `<div style="font-size:11px;color:var(--muted)">${esc(d.site)}</div>` : ""}</td>`;
     case "manpower": return `<td style="min-width:150px">${splitNames(d.manpower).map(esc).join("<br>") || '<span class="blank">—</span>'}</td>`;
     case "job_request": case "remarks": return `<td class="wide">${b(d[c.k])}</td>`;
-    case "parts_needed": return `<td class="wide">${b(d.parts_needed)}${d.supplier ? `<div style="font-size:11px;color:var(--muted)">${esc(d.supplier)}${d.part_price_php ? " · " + peso(d.part_price_php) + (d.part_qty ? " × " + d.part_qty : "") : ""}</div>` : ""}</td>`;
+    case "parts_needed": {
+      const list = legacyParts(d);
+      if (!list.length) return `<td class="wide"><span class="blank">—</span></td>`;
+      return `<td class="wide" style="min-width:240px"><ul class="plist">${list.map((p) => `<li>${esc(p.name)}${p.qty ? ` ×${esc(p.qty)}` : ""}${p.date_arrived ? ` <span class="ok">✓</span>` : ""}<small>${[p.part_no ? "P/N " + esc(p.part_no) : "", p.supplier ? esc(p.supplier) : "", p.unit_price ? peso(p.unit_price) : "", p.date_arrived ? "Arrived " + fmtDate(p.date_arrived) : (p.date_requested ? "Requested " + fmtDate(p.date_requested) : "Not yet requested")].filter(Boolean).join(" · ")}</small></li>`).join("")}</ul>${list.length > 1 && partsTotal(list) ? `<small style="color:var(--muted)">Total ${peso(partsTotal(list))}</small>` : ""}</td>`;
+    }
     case "date_entry": return `<td class="date">${d.date_entry ? fmtDate(d.date_entry) : '<span class="blank">—</span>'}${d.time_in ? `<div style="font-size:11px;color:var(--muted)">${fmtTime(d.time_in)}</div>` : ""}</td>`;
     case "date_finished": return `<td class="date">${d.date_finished ? fmtDate(d.date_finished) : '<span class="blank">—</span>'}${d.time_finished ? `<div style="font-size:11px;color:var(--muted)">${fmtTime(d.time_finished)}</div>` : ""}</td>`;
     case "date_released": return `<td class="date">${d.date_released ? fmtDate(d.date_released) : '<span class="blank">—</span>'}${d.time_released ? `<div style="font-size:11px;color:var(--muted)">${fmtTime(d.time_released)}</div>` : ""}</td>`;
@@ -573,6 +634,7 @@ function openJob(ref) {
   $("#hist").innerHTML = h.slice().reverse().map((e) => `<li>${esc(e.status)} · ${esc(new Date(e.at).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}))}</li>`).join("");
   $("#dlg").querySelectorAll("input,select,textarea").forEach((el) => el.disabled = !unlocked);
   mpSel = splitNames(job.manpower); drawMp();
+  partsSel = legacyParts(job); drawParts();
   $("#btnSave").hidden = !unlocked; $("#btnDel").hidden = !unlocked || !d; $("#lockedHint").hidden = unlocked;
   $("#dlg").showModal();
 }
@@ -582,10 +644,12 @@ async function saveJob() {
   const job = {...(prev || {}), ref};
   FIELDS.forEach((f) => { const el = document.getElementById(f); if (!el || f === "ref") return; let v = el.value.trim(); if (el.type === "number") v = v === "" ? null : Number(v); job[f] = v === "" ? null : v; });
   if (!job.unit) { toast("Enter the unit description."); $("#unit").focus(); return; }
+  readParts(); applyParts(job, partsSel);
+  const allArrived = job.parts.length && job.parts.every((p) => p.date_arrived);
   if (job.date_released && job.status !== "Released") { job.status = "Released"; toast("Date released is set, so the status is now Released."); }
   else if (job.date_finished && !CLOSED.has(job.status)) { job.status = "Finished"; toast("Date finished is set, so the status is now Finished."); }
   if (!prev || prev.status !== job.status) job.history = [...(prev?.history || []), {status: job.status, at: new Date().toISOString()}];
-  try { await store.save(job); $("#dlg").close(); toast(prev ? "Job saved." : "Job added."); }
+  try { await store.save(job); $("#dlg").close(); toast(allArrived && job.status === "Waiting for Parts" ? "Saved. All parts have arrived, update the status when work starts." : (prev ? "Job saved." : "Job added.")); }
   catch (e) { console.error(e); toast("Could not save. Check the connection and try again."); }
 }
 
@@ -610,7 +674,7 @@ $("#btnSeed").addEventListener("click", async () => {
   await store.saveMany(add); toast(`${add.length} jobs loaded.`);
 });
 $("#btnCsv").addEventListener("click", () => {
-  const cols = [...FIELDS, "days_open"];
+  const cols = [...FIELDS, "parts_total", "days_open"];
   const rows = [cols, ...data.map((d) => cols.map((c) => c === "days_open" ? (daysOpen(d) ?? "") : (d[c] ?? "")))];
   const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
   const a = document.createElement("a");
