@@ -1,4 +1,4 @@
-<index.html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -182,7 +182,7 @@ legend{font-size:12px;font-weight:700;color:var(--maroon);padding:0 6px}
       </div>
     </div>
     <div class="filters">
-      <input type="search" id="q" placeholder="Search unit, job, part, manpower, remarks" aria-label="Search">
+      <input type="search" id="q" placeholder="Search unit, job, manpower, remarks" aria-label="Search">
       <select id="fBu" aria-label="Business unit"></select>
       <select id="fLoc" aria-label="Location"></select>
       <select id="fSec" aria-label="Section"></select>
@@ -221,13 +221,6 @@ legend{font-size:12px;font-weight:700;color:var(--maroon);padding:0 6px}
       <div class="grid">
         <label>Date of entry<input type="date" id="date_entry"></label>
         <label>Time in<input type="time" id="time_in"></label>
-      </div>
-    </fieldset>
-    <fieldset><legend>Parts</legend>
-      <div id="partsList"></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
-        <button type="button" class="btn-ghost" id="btnAddPart">+ Add part</button>
-        <span id="partsTotal" style="font-size:13px;color:var(--muted)"></span>
       </div>
     </fieldset>
     <fieldset><legend>Completion</legend>
@@ -338,7 +331,7 @@ const PERSONNEL = [
 const PERSON_GROUPS = [...new Set(PERSONNEL.map((x) => x.g))];
 const TECH_GROUPS = ["Underchassis","Overhauling","Auto-Electrical","Machine Shop & Fabrication","Painting","Aircon","Tireman","Logistics","Plant Maintenance"];
 const splitNames = (s) => String(s || "").split(",").map((x) => x.trim()).filter(Boolean);
-const FIELDS = ["ref","status","priority","location","site","business_unit","unit","section","job_request","job_order","manpower","date_entry","time_in","date_started","parts_needed","part_qty","part_price_php","supplier","pr_no","date_part_requested","date_part_arrived","date_finished","time_finished","date_released","time_released","remarks"];
+const FIELDS = ["ref","status","priority","location","site","business_unit","unit","section","job_request","job_order","manpower","date_entry","time_in","date_started","date_finished","time_finished","date_released","time_released","remarks"];
 
 /* Status as of 14 Oct 2026, loaded once with the "Load 14 Oct list" button. */
 const SEED = [{"ref": "EMR-001", "status": "Ongoing", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "BBC", "unit": "ZGW-915 Isuzu D-Max", "section": "Painting", "job_request": "Painting", "job_order": null, "manpower": null, "date_entry": "2026-09-25", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-002", "status": "Ongoing", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "AP", "unit": "DT42", "section": "Auto-Electrical", "job_request": "Speed sensor connection checking", "job_order": null, "manpower": null, "date_entry": "2026-10-12", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-003", "status": "Ongoing", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "SCM", "unit": "D-Trailer #02", "section": "Machine Shop & Fabrication / Underchassis", "job_request": "Leaf spring holder, bushing and pin replacement", "job_order": null, "manpower": null, "date_entry": "2026-10-10", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "1 of 4 done, 3 ongoing"}, {"ref": "EMR-004", "status": "Ongoing", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "BBC", "unit": "NEP-5320 Howo Boom Truck", "section": "Underchassis", "job_request": "Clutch system slipping: checking & repair", "job_order": null, "manpower": null, "date_entry": "2026-10-13", "time_in": null, "parts_needed": "Relief valve at suction valve (requested)", "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Moved in from front parking 13 Oct; Underchassis checks clutch first"}, {"ref": "EMR-005", "status": "Waiting for Manpower", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "RMC", "unit": "Sany Boom 37 Pumpcrete", "section": null, "job_request": "Hydraulic system repair", "job_order": null, "manpower": null, "date_entry": "2026-09-16", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Parts available"}, {"ref": "EMR-006", "status": "Waiting for Manpower", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "Feedmix (external)", "unit": "NHA-4929 UD TH #21", "section": "Aircon", "job_request": "Evaporator installation", "job_order": null, "manpower": null, "date_entry": "2026-09-26", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Parts available; waiting for aircon technician"}, {"ref": "EMR-007", "status": "Waiting for Manpower", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "Feedmix (external)", "unit": "NID-4894 UD TH #14", "section": null, "job_request": "Pneumatic system repair", "job_order": null, "manpower": null, "date_entry": "2026-10-05", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Temporarily stopped due to priority jobs"}, {"ref": "EMR-008", "status": "Waiting for Manpower", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "BBC", "unit": "Howo DT05", "section": "Aircon", "job_request": "Aircon compressor installation", "job_order": null, "manpower": null, "date_entry": "2026-10-05", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Parts available; waiting for technician"}, {"ref": "EMR-009", "status": "Waiting for Manpower", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": null, "unit": "1409C Line Pump", "section": null, "job_request": "Hydraulic system repair", "job_order": null, "manpower": null, "date_entry": "2026-10-05", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Parts available; owner to confirm"}, {"ref": "EMR-010", "status": "Waiting for Manpower", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "RMC", "unit": "NGB-1366 Toyota Wigo", "section": null, "job_request": "Engine & transmission support installation", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Parts available; entry date to confirm"}, {"ref": "EMR-011", "status": "Waiting for Parts", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "BBC", "unit": "R170 Hyundai Excavator", "section": null, "job_request": "Radiator replacement", "job_order": null, "manpower": null, "date_entry": "2026-09-26", "time_in": null, "parts_needed": "Radiator assembly", "date_part_requested": "2026-09-26", "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-012", "status": "Waiting for Parts", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "RMC", "unit": "Sinotruk #05", "section": null, "job_request": "Alternator belt replacement", "job_order": null, "manpower": null, "date_entry": "2026-09-29", "time_in": null, "parts_needed": "Alternator belt", "date_part_requested": "2026-09-29", "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-013", "status": "Waiting for Parts", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": null, "unit": "Sany Line Pump", "section": null, "job_request": "Hydraulic system repair", "job_order": null, "manpower": null, "date_entry": "2026-10-05", "time_in": null, "parts_needed": "Hydraulic parts (for request)", "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Parts not yet requested; needs manpower after parts"}, {"ref": "EMR-014", "status": "Waiting for Parts", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": null, "unit": "Kubota Farm Tractor #14", "section": "Tireman", "job_request": "Tire & rim replacement", "job_order": null, "manpower": null, "date_entry": "2026-10-12", "time_in": null, "parts_needed": "Tire & rim", "date_part_requested": "2026-10-12", "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-015", "status": "Pending", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": null, "unit": "75 KVA New Frontier Generator #02", "section": null, "job_request": "Stator rewind", "job_order": null, "manpower": null, "date_entry": "2026-10-12", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-016", "status": "Pending", "location": "Front Parking", "site": "Pulilan Motorpool", "business_unit": "AP", "unit": "DT33", "section": "Aircon", "job_request": "Aircon job request", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-017", "status": "Pending", "location": "Front Parking", "site": "Pulilan Motorpool", "business_unit": "AP", "unit": "DT36", "section": "Aircon", "job_request": "Aircon job request", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-018", "status": "For Testing", "location": "Front Parking", "site": "Pulilan Motorpool", "business_unit": "BBC", "unit": "Sinotruk #12", "section": null, "job_request": "Post-repair testing", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-019", "status": "Waiting for Parts", "location": "Project Site", "site": "Daiichi Tanauan", "business_unit": "BBC", "unit": "Case Skid Loader", "section": null, "job_request": "Transmission oil seal replacement", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": "Transmission oil seal at starter (requested)", "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-020", "status": "Waiting for Parts", "location": "Project Site", "site": "Malolos Project", "business_unit": "BBC", "unit": "XCMG #11 Wheel Loader", "section": null, "job_request": "Propeller shaft repair", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": "Propeller shaft cross joint (requested)", "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-021", "status": "Waiting for Parts", "location": "Project Site", "site": "Malolos Project", "business_unit": "BBC", "unit": "D4C #03 Bulldozer", "section": null, "job_request": "Alternator replacement", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": "Alternator assembly (requested)", "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-022", "status": "Ongoing", "location": "Project Site", "site": "Malolos Robinson", "business_unit": null, "unit": "Tower Crane #03", "section": null, "job_request": "Dismantling", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": "Dismantling starts with unit #03"}, {"ref": "EMR-023", "status": "Pending", "location": "Project Site", "site": "Bongabon Quarry", "business_unit": null, "unit": "SDLG #31 Excavator", "section": null, "job_request": "Engine PMS; swing arm concern", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-024", "status": "Waiting for Parts", "location": "Project Site", "site": "Calamba 3B", "business_unit": null, "unit": "Sany Truck-Mounted Crane #02", "section": null, "job_request": "Height limit switch replacement", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": "Height limit switch 60359944, P/N 142599000047A", "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": "Topspot Heavy Equipment Inc.", "part_price_php": 12183.44, "remarks": "Quotation signed; qty and delivery date to confirm"}, {"ref": "EMR-025", "status": "Waiting for Parts", "location": "Project Site", "site": "Calamba 3B", "business_unit": null, "unit": "Sany Truck-Mounted Crane #03", "section": null, "job_request": "Pressure sensor replacement", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": "Pressure sensor, P/N 140502000186A", "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": "Topspot Heavy Equipment Inc.", "part_price_php": 6262.36, "remarks": "Quotation signed; qty and delivery date to confirm"}, {"ref": "EMR-026", "status": "Waiting for Parts", "location": "Project Site", "site": "Calamba 3B", "business_unit": null, "unit": "Case Compactor", "section": null, "job_request": "Starter motor replacement", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": "Starter motor (requested)", "date_part_requested": null, "date_part_arrived": null, "date_finished": null, "time_finished": null, "date_released": null, "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-027", "status": "Released", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "RMC", "unit": "TM28", "section": "Underchassis", "job_request": "Brake lining replacement", "job_order": null, "manpower": null, "date_entry": "2026-10-12", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": "2026-10-13", "time_finished": null, "date_released": "2026-10-13", "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-028", "status": "Released", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "BBC", "unit": "NFV-4217 Mitsubishi Strada", "section": "Aircon", "job_request": "Aircon: loss of freon, tightening of connections and monitoring", "job_order": null, "manpower": null, "date_entry": "2026-10-12", "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": "2026-10-13", "time_finished": null, "date_released": "2026-10-13", "supplier": null, "part_price_php": null, "remarks": null}, {"ref": "EMR-029", "status": "Released", "location": "Inside Motorpool", "site": "Pulilan Motorpool", "business_unit": "AP", "unit": "Howo Self Loading #05", "section": "Overhauling", "job_request": "Engine & electrical PMS", "job_order": null, "manpower": null, "date_entry": null, "time_in": null, "parts_needed": null, "date_part_requested": null, "date_part_arrived": null, "date_finished": "2026-10-12", "time_finished": "17:00", "date_released": "2026-10-13", "supplier": null, "part_price_php": null, "remarks": "Back to operation; entry date to confirm"}];
@@ -434,12 +427,11 @@ function renderStats() {
   const rel = data.filter((d) => d.status === "Released" && d.date_entry && d.date_released);
   const avg = rel.length ? (rel.reduce((a, d) => a + daysOpen(d), 0) / rel.length) : null;
   const noEntry = open.filter((d) => !d.date_entry).length;
-  const partWait = open.filter((d) => d.status === "Waiting for Parts" && d.date_part_requested).map((d) => dayDiff(d.date_part_requested, todayStr()));
   const relToday = data.filter((d) => d.date_released === todayStr()).length;
   $("#stats").innerHTML = [
     {k:`Open over ${OLD_DAYS} days`, v: old.length, bad: old.length > 0},
     {k:"Average turnaround, released (days)", v: avg == null ? "—" : avg.toFixed(1)},
-    {k:"Longest wait for parts (days)", v: partWait.length ? Math.max(...partWait) : "—"},
+    {k:"Finished, waiting for release", v: data.filter((d) => d.status === "Finished").length},
     {k:"Released today", v: relToday},
     {k:"Open jobs missing date of entry", v: noEntry},
     {k:"Open jobs with no manpower assigned", v: open.filter((d) => !d.manpower).length}
@@ -457,57 +449,6 @@ function renderLoad() {
     ? `Counts open jobs where the person is listed under Manpower. ${free} of ${techs.length} technicians have no open job assigned.`
     : `No manpower assigned to open jobs yet. Open a job and pick names under Manpower.`;
   $("#load").innerHTML = rows.map((r) => `<div><span class="who">${esc(r.n)}<small>${esc(r.p)}</small></span><b>${r.c}</b></div>`).join("");
-}
-
-/* parts editor: any number of parts per job */
-let partsSel = [];
-const PART_KEYS = ["name","part_no","qty","unit_price","supplier","pr_no","date_requested","date_arrived"];
-function legacyParts(job) {
-  if (Array.isArray(job.parts)) return job.parts.map((p) => ({...p}));
-  if (!job.parts_needed) return [];
-  return [{name: job.parts_needed, part_no: "", qty: job.part_qty ?? null, unit_price: job.part_price_php ?? null, supplier: job.supplier || "", pr_no: job.pr_no || "", date_requested: job.date_part_requested || "", date_arrived: job.date_part_arrived || ""}];
-}
-function readParts() {
-  document.querySelectorAll("#partsList .prow").forEach((row, i) => {
-    PART_KEYS.forEach((k) => { const el = row.querySelector(`[data-k="${k}"]`); let v = el.value.trim(); if (el.type === "number") v = v === "" ? null : Number(v); partsSel[i][k] = v; });
-  });
-}
-function partsTotal(list) { return list.reduce((a, p) => a + (Number(p.qty) || 0) * (Number(p.unit_price) || 0), 0); }
-function drawParts() {
-  const v = (x) => esc(x ?? "");
-  $("#partsList").innerHTML = partsSel.length ? partsSel.map((p, i) => `<div class="prow">
-    <label class="pn">Part name<input data-k="name" value="${v(p.name)}" placeholder="e.g. Alternator belt"></label>
-    <label>Part no.<input data-k="part_no" value="${v(p.part_no)}"></label>
-    <label>Qty<input data-k="qty" type="number" min="0" step="1" value="${v(p.qty)}"></label>
-    <label>Unit price (₱)<input data-k="unit_price" type="number" min="0" step="0.01" value="${v(p.unit_price)}"></label>
-    <label>Supplier<input data-k="supplier" value="${v(p.supplier)}"></label>
-    <label>PR / PO no.<input data-k="pr_no" value="${v(p.pr_no)}"></label>
-    <label>Requested<input data-k="date_requested" type="date" value="${v(p.date_requested)}"></label>
-    <label>Arrived<input data-k="date_arrived" type="date" value="${v(p.date_arrived)}"></label>
-    <button type="button" class="rm" data-i="${i}" aria-label="Remove part">×</button></div>`).join("")
-    : '<p class="blank" style="font-size:12px;margin:4px 0">No parts listed. Click “+ Add part” if this job needs parts.</p>';
-  $("#partsList").querySelectorAll("input,button").forEach((el) => { el.disabled = !unlocked; });
-  $("#btnAddPart").hidden = !unlocked;
-  updatePartsTotal();
-}
-function updatePartsTotal() {
-  const t = partsTotal(partsSel);
-  $("#partsTotal").textContent = partsSel.length ? `${partsSel.length} part${partsSel.length > 1 ? "s" : ""}${t ? " · Total " + peso(t) : ""}` : "";
-}
-$("#btnAddPart").addEventListener("click", () => { readParts(); partsSel.push({name:"",part_no:"",qty:1,unit_price:null,supplier:"",pr_no:"",date_requested:todayStr(),date_arrived:""}); drawParts(); const rows = document.querySelectorAll("#partsList .prow"); rows[rows.length-1].querySelector('[data-k="name"]').focus(); });
-$("#partsList").addEventListener("click", (e) => { const b = e.target.closest("button.rm"); if (!b) return; readParts(); partsSel.splice(Number(b.dataset.i), 1); drawParts(); });
-$("#partsList").addEventListener("input", () => { readParts(); updatePartsTotal(); });
-function applyParts(job, list) {
-  const parts = list.filter((p) => String(p.name || "").trim());
-  job.parts = parts;
-  const uniq = (k) => [...new Set(parts.map((p) => p[k]).filter(Boolean))].join(", ") || null;
-  job.parts_needed = parts.length ? parts.map((p) => p.name + (p.part_no ? ` (P/N ${p.part_no})` : "") + (p.qty ? ` ×${p.qty}` : "")).join("; ") : null;
-  job.supplier = uniq("supplier"); job.pr_no = uniq("pr_no");
-  const req = parts.map((p) => p.date_requested).filter(Boolean).sort();
-  job.date_part_requested = req[0] || null;
-  job.date_part_arrived = parts.length && parts.every((p) => p.date_arrived) ? parts.map((p) => p.date_arrived).sort().slice(-1)[0] : null;
-  job.parts_total = partsTotal(parts) || null;
-  job.part_qty = null; job.part_price_php = null;
 }
 
 /* manpower picker */
@@ -554,9 +495,7 @@ const COLS = [
   {k:"job_order", l:"JO no."},
   {k:"manpower", l:"Manpower"},
   {k:"date_entry", l:"Date / time in"},
-  {k:"parts_needed", l:"Parts needed"},
-  {k:"date_part_requested", l:"Part requested"},
-  {k:"date_part_arrived", l:"Part arrived"},
+  {k:"date_started", l:"Started"},
   {k:"date_finished", l:"Finished"},
   {k:"date_released", l:"Released"},
   {k:"days", l:"Days", n:true},
@@ -592,15 +531,10 @@ function cell(d, c) {
     case "location": return `<td>${b(d.location)}${d.site && d.site !== "Pulilan Motorpool" ? `<div style="font-size:11px;color:var(--muted)">${esc(d.site)}</div>` : ""}</td>`;
     case "manpower": return `<td style="min-width:150px">${splitNames(d.manpower).map(esc).join("<br>") || '<span class="blank">—</span>'}</td>`;
     case "job_request": case "remarks": return `<td class="wide">${b(d[c.k])}</td>`;
-    case "parts_needed": {
-      const list = legacyParts(d);
-      if (!list.length) return `<td class="wide"><span class="blank">—</span></td>`;
-      return `<td class="wide" style="min-width:240px"><ul class="plist">${list.map((p) => `<li>${esc(p.name)}${p.qty ? ` ×${esc(p.qty)}` : ""}${p.date_arrived ? ` <span class="ok">✓</span>` : ""}<small>${[p.part_no ? "P/N " + esc(p.part_no) : "", p.supplier ? esc(p.supplier) : "", p.unit_price ? peso(p.unit_price) : "", p.date_arrived ? "Arrived " + fmtDate(p.date_arrived) : (p.date_requested ? "Requested " + fmtDate(p.date_requested) : "Not yet requested")].filter(Boolean).join(" · ")}</small></li>`).join("")}</ul>${list.length > 1 && partsTotal(list) ? `<small style="color:var(--muted)">Total ${peso(partsTotal(list))}</small>` : ""}</td>`;
-    }
+    case "date_started": return `<td class="date">${d.date_started ? fmtDate(d.date_started) : '<span class="blank">—</span>'}</td>`;
     case "date_entry": return `<td class="date">${d.date_entry ? fmtDate(d.date_entry) : '<span class="blank">—</span>'}${d.time_in ? `<div style="font-size:11px;color:var(--muted)">${fmtTime(d.time_in)}</div>` : ""}</td>`;
     case "date_finished": return `<td class="date">${d.date_finished ? fmtDate(d.date_finished) : '<span class="blank">—</span>'}${d.time_finished ? `<div style="font-size:11px;color:var(--muted)">${fmtTime(d.time_finished)}</div>` : ""}</td>`;
     case "date_released": return `<td class="date">${d.date_released ? fmtDate(d.date_released) : '<span class="blank">—</span>'}${d.time_released ? `<div style="font-size:11px;color:var(--muted)">${fmtTime(d.time_released)}</div>` : ""}</td>`;
-    case "date_part_requested": case "date_part_arrived": return `<td class="date">${d[c.k] ? fmtDate(d[c.k]) : '<span class="blank">—</span>'}</td>`;
     case "days": { const n = daysOpen(d); return `<td class="n"><span class="days${n > OLD_DAYS && d.status !== "Released" ? " old" : ""}">${n ?? '<span class="blank">—</span>'}</span></td>`; }
     default: return `<td>${b(d[c.k])}</td>`;
   }
@@ -634,7 +568,6 @@ function openJob(ref) {
   $("#hist").innerHTML = h.slice().reverse().map((e) => `<li>${esc(e.status)} · ${esc(new Date(e.at).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}))}</li>`).join("");
   $("#dlg").querySelectorAll("input,select,textarea").forEach((el) => el.disabled = !unlocked);
   mpSel = splitNames(job.manpower); drawMp();
-  partsSel = legacyParts(job); drawParts();
   $("#btnSave").hidden = !unlocked; $("#btnDel").hidden = !unlocked || !d; $("#lockedHint").hidden = unlocked;
   $("#dlg").showModal();
 }
@@ -644,12 +577,10 @@ async function saveJob() {
   const job = {...(prev || {}), ref};
   FIELDS.forEach((f) => { const el = document.getElementById(f); if (!el || f === "ref") return; let v = el.value.trim(); if (el.type === "number") v = v === "" ? null : Number(v); job[f] = v === "" ? null : v; });
   if (!job.unit) { toast("Enter the unit description."); $("#unit").focus(); return; }
-  readParts(); applyParts(job, partsSel);
-  const allArrived = job.parts.length && job.parts.every((p) => p.date_arrived);
   if (job.date_released && job.status !== "Released") { job.status = "Released"; toast("Date released is set, so the status is now Released."); }
   else if (job.date_finished && !CLOSED.has(job.status)) { job.status = "Finished"; toast("Date finished is set, so the status is now Finished."); }
   if (!prev || prev.status !== job.status) job.history = [...(prev?.history || []), {status: job.status, at: new Date().toISOString()}];
-  try { await store.save(job); $("#dlg").close(); toast(allArrived && job.status === "Waiting for Parts" ? "Saved. All parts have arrived, update the status when work starts." : (prev ? "Job saved." : "Job added.")); }
+  try { await store.save(job); $("#dlg").close(); toast(prev ? "Job saved." : "Job added."); }
   catch (e) { console.error(e); toast("Could not save. Check the connection and try again."); }
 }
 
@@ -674,7 +605,7 @@ $("#btnSeed").addEventListener("click", async () => {
   await store.saveMany(add); toast(`${add.length} jobs loaded.`);
 });
 $("#btnCsv").addEventListener("click", () => {
-  const cols = [...FIELDS, "parts_total", "days_open"];
+  const cols = [...FIELDS, "days_open"];
   const rows = [cols, ...data.map((d) => cols.map((c) => c === "days_open" ? (daysOpen(d) ?? "") : (d[c] ?? "")))];
   const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
   const a = document.createElement("a");
@@ -685,7 +616,7 @@ $("#btnPrint").addEventListener("click", () => {
   const open = data.filter((d) => !CLOSED.has(d.status));
   const relToday = data.filter((d) => d.date_released === todayStr());
   const tbl = (list) => `<table><thead><tr><th>#</th><th>Unit</th><th>BU</th><th>Job request</th><th>Section</th><th>Manpower</th><th>Date in</th><th class="n">Days</th><th>Status</th><th>Remarks</th></tr></thead><tbody>` +
-    list.map((d, i) => `<tr><td>${i+1}</td><td><b>${esc(d.unit)}</b>${d.location === "Project Site" && d.site ? "<br>" + esc(d.site) : ""}</td><td>${esc(d.business_unit || "—")}</td><td>${esc(d.job_request || "")}${d.parts_needed ? "<br><i>Parts: " + esc(d.parts_needed) + "</i>" : ""}</td><td>${esc(d.section || "—")}</td><td>${splitNames(d.manpower).map(esc).join("<br>") || "—"}</td><td>${d.date_entry ? fmtDate(d.date_entry) : "—"}${d.time_in ? " " + fmtTime(d.time_in) : ""}</td><td class="n">${daysOpen(d) ?? "—"}</td><td>${esc(d.status)}</td><td>${esc(d.remarks || "")}</td></tr>`).join("") + "</tbody></table>";
+    list.map((d, i) => `<tr><td>${i+1}</td><td><b>${esc(d.unit)}</b>${d.location === "Project Site" && d.site ? "<br>" + esc(d.site) : ""}</td><td>${esc(d.business_unit || "—")}</td><td>${esc(d.job_request || "")}</td><td>${esc(d.section || "—")}</td><td>${splitNames(d.manpower).map(esc).join("<br>") || "—"}</td><td>${d.date_entry ? fmtDate(d.date_entry) : "—"}${d.time_in ? " " + fmtTime(d.time_in) : ""}</td><td class="n">${daysOpen(d) ?? "—"}</td><td>${esc(d.status)}</td><td>${esc(d.remarks || "")}</td></tr>`).join("") + "</tbody></table>";
   const byLoc = LOCATIONS.map((l) => { const list = open.filter((d) => d.location === l).sort((a, b) => STATUSES.findIndex((s) => s.k === a.status) - STATUSES.findIndex((s) => s.k === b.status)); return list.length ? `<h3>${esc(l)} (${list.length})</h3>${tbl(list)}` : ""; }).join("");
   const now = new Date();
   $("#printArea").innerHTML = `<h1>EMR Motorpool Job Status Report</h1>
